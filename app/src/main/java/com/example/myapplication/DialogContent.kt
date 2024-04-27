@@ -1,5 +1,7 @@
 package com.example.myapplication
 
+import kotlin.coroutines.Continuation
+
 enum class DialogData(
     val invoke: String,
     val title: String,
@@ -22,3 +24,5 @@ enum class DialogData(
         "CANCEL"
     )
 }
+
+private var dialogContinuation: Continuation<Boolean>? = null
