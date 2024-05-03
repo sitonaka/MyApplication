@@ -4,9 +4,12 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import kotlin.coroutines.Continuation
+import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
 
 enum class DialogData(
     val kick: String,
@@ -33,19 +36,31 @@ enum class DialogData(
 
 private var dialogContinuation: Continuation<Boolean>? = null
 
+private suspend fun suspendDialog(
+    isVisible: MutableState<Boolean>
+): Boolean = suspendCoroutine { continuation ->
+    dialogContinuation = continuation
+    isVisible.value = true
+}
+
 @Composable
 fun DialogContent(
     content: @Composable (showDialog: suspend (dialogData: DialogData) -> Boolean) -> Unit
 ) {
     val isVisible = remember { mutableStateOf(false) }
     val dialogData = remember { mutableStateOf(DialogData.COUNT_UP) }
-    // content{}
+    content {
+        dialogData.value = it
+        suspendDialog(isVisible)
+    }
     if (isVisible.value) {
         AlertDialog(
             onDismissRequest = {},
             confirmButton = {
                 Button(onClick = {
                     isVisible.value = false
+                    dialogContinuation?.resume(true)
+                    dialogContinuation = null
                 }) {
                     Text(text = dialogData.value.positive)
                 }
@@ -53,6 +68,8 @@ fun DialogContent(
             dismissButton = {
                 Button(onClick = {
                     isVisible.value = false
+                    dialogContinuation?.resume(false)
+                    dialogContinuation = null
                 }) {
                     Text(text = dialogData.value.negative)
                 }
